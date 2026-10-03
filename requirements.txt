@@ -1,0 +1,14 @@
+# Original experiments: Python 3.9, PyTorch 2.3.1, CUDA 12.1.
+# CUDA toolkit/runtime selection is handled separately from this manifest.
+torch==2.3.1
+torchvision
+numpy
+Pillow
+PyYAML
+scikit-learn
+matplotlib
+opencv-python
+tqdm
+prefetch-generator
+torch-ema
+wandb
