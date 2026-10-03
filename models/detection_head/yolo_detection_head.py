@@ -5,17 +5,17 @@ import torch.nn as nn
 class YOLODetectionHead(nn.Module):
     def __init__(self, in_channels_list=[256, 256, 256], num_anchors=3, num_classes=1):
         """
-        支持多尺度输入的 YOLO 风格检测头。
-        每个尺度都有自己的卷积模块，输出 [B, A, H, W, 5+C]
+        YOLO-style detection head for multiscale inputs.
+        Each scale has its own convolutional block and outputs [B, A, H, W, 5+C].
 
-        :param in_channels_list: List[int]，FPN中每个尺度的输入通道数（通常为[256, 256, 256]）
-        :param num_anchors: 每个位置的 anchor 数
-        :param num_classes: 类别数（只检测 car 时为 1）
+        :param in_channels_list: List[int]: FPN input channels per scale, typically [256, 256, 256]
+        :param num_anchors: Number of anchors per spatial location
+        :param num_classes: Number of classes (1 for Car-only detection)
         """
         super(YOLODetectionHead, self).__init__()
         self.num_anchors = num_anchors
         self.num_classes = num_classes
-        self.pred_dim = 5 + num_classes  # [x, y, w, h, obj_conf] + 类别
+        self.pred_dim = 5 + num_classes  # [x, y, w, h, obj_conf] + Class scores
 
         self.detect_layers = nn.ModuleList()
 
@@ -25,16 +25,16 @@ class YOLODetectionHead(nn.Module):
                     nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
                     nn.BatchNorm2d(in_channels),
                     nn.LeakyReLU(0.1),
-                    nn.Dropout2d(p=0.3),  # ✅ 添加 Dropout，防止过拟合
+                    nn.Dropout2d(p=0.3),  # ✅ Apply dropout to reduce overfitting.
                     nn.Conv2d(in_channels, num_anchors * self.pred_dim, kernel_size=1)
                 )
             )
 
     def forward(self, features):
         """
-        多尺度特征图的前向传播
-        :param features: List[Tensor]，每个Tensor形状为 [B, C, H, W]
-        :return: List[Tensor]，每层输出形状为 [B, A, H, W, 5+C]
+        Forward pass for multiscale feature maps.
+        :param features: List[Tensor], each shaped [B, C, H, W]
+        :return: List[Tensor], each level shaped [B, A, H, W, 5+C]
         """
         outputs = []
 

@@ -49,15 +49,15 @@ def evaluate_subset(model, dataloader, device):
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    cfg = load_yaml("D:/Desktop/mod/configs/result_train_config.yaml")
+    cfg = load_yaml("./configs/result_train_config.yaml")
     model, _, _, _, _, _ = build_result_components(cfg, device)
-    # ckpt = torch.load("D:/Desktop/final_results/result_saved_model_best_f1.pth", map_location=device)
-    ckpt = torch.load("D:/Desktop/final_results/result_saved_model_best_f1.pth", map_location=device)
+    # ckpt = torch.load("./results/result_saved_model_best_f1.pth", map_location=device)
+    ckpt = torch.load("./results/result_saved_model_best_f1.pth", map_location=device)
     model.load_state_dict(ckpt["model"])
     model.anchors = ckpt["anchors"]
 
-    dataset = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "test")
-    npz_path = "D:/Desktop/mod/test_indices.npz"
+    dataset = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "test")
+    npz_path = "./test_indices.npz"
     if os.path.exists(npz_path):
         splits = np.load(npz_path)
         easy_ids, moderate_ids, hard_ids = splits["easy"], splits["moderate"], splits["hard"]
@@ -68,15 +68,15 @@ if __name__ == "__main__":
     dl_moderate = DataLoader(Subset(dataset, moderate_ids), batch_size=8, collate_fn=kitti_collate)
     dl_hard = DataLoader(Subset(dataset, hard_ids), batch_size=8, collate_fn=kitti_collate)
 
-    print("🧠 [Easy] 测试中...")
+    print("🧠 [Easy] Evaluating...")
     print(evaluate_subset(model, dl_easy, device))
-    print("🧠 [Moderate] 测试中...")
+    print("🧠 [Moderate] Evaluating...")
     print(evaluate_subset(model, dl_moderate, device))
-    print("🧠 [Hard] 测试中...")
+    print("🧠 [Hard] Evaluating...")
     print(evaluate_subset(model, dl_hard, device))
 
-    # ✅ 新增：完整验证集评估
-    print("🚀 [Overall 全体样本] 测试中...")
+    # ✅ Evaluate the full test split.
+    print("🚀 [Overall, all samples] Evaluating...")
     full_loader = DataLoader(dataset, batch_size=8, collate_fn=kitti_collate)
     overall_metrics = evaluate_subset(model, full_loader, device)
     print(overall_metrics)

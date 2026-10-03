@@ -10,8 +10,8 @@ log_with_wandb: true
 num_workers: 4
 prefetch_factor: 2
 wandb_project: mamba_feature_fusion
-#cache_dir: D:/KITTI/fused_cache_all
-save_path: D:/Desktop/mod/results/mamba/mamba_saved_model.pth
+#cache_dir: ./data/KITTI/fused_cache_all
+save_path: ./results/mamba/mamba_saved_model.pth
 resume: true
 anchors:
   P3:

@@ -5,31 +5,31 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
     assert output.dim() == 5, f"Expect 5-D tensor, got {output.shape}"
 
     """
-    解码 YOLO 输出，支持 batch 和多 anchor。
+    Decode batched YOLO predictions with multiple anchors.
 
     :param output: Tensor [B, A, H, W, 5+C]
-    :param anchors: List[Tuple(w, h)] 或 Tensor [A, 2]
-    :param stride: int（当前输出层的 stride，如 P3=8, P4=16, P5=32）
-    :param conf_thresh: 置信度阈值
-    :param nms_thresh: NMS 阈值
-    :return: List[B]，每个样本是 List[dict{box, score, label}]
+    :param anchors: List[Tuple(w, h)] or Tensor [A, 2]
+    :param stride: int: output stride, e.g. P3=8, P4=16, P5=32
+    :param conf_thresh: Confidence threshold
+    :param nms_thresh: NMS IoU threshold
+    :return: List[B], each item a List[dict{box, score, label}]
     """
     B, A, H, W, pred_dim = output.shape
     num_classes = pred_dim - 5
     device = output.device
     anchors = torch.tensor(anchors, device=device).view(1, A, 1, 1, 2)
 
-    # 构建 grid 偏移
+    # Build grid offsets.
     grid_y, grid_x = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
     grid_xy = torch.stack([grid_x, grid_y], dim=-1).to(device)  # [H, W, 2]
     grid_xy = grid_xy.view(1, 1, H, W, 2)
 
-    # 解码
+    # Decode predictions.
     pred = output.clone()
-    pred_xy = (pred[..., 0:2].sigmoid() + grid_xy) * stride  # 中心点
-    pred_wh = torch.exp(pred[..., 2:4]) * anchors  # 宽高
-    pred_obj = pred[..., 4].sigmoid()  # 置信度
-    pred_cls = pred[..., 5:].sigmoid()  # 类别分布
+    pred_xy = (pred[..., 0:2].sigmoid() + grid_xy) * stride  # Box centers.
+    pred_wh = torch.exp(pred[..., 2:4]) * anchors  # Box width and height.
+    pred_obj = pred[..., 4].sigmoid()  # Objectness probability.
+    pred_cls = pred[..., 5:].sigmoid()  # Per-class probabilities.
 
     pred_boxes = torch.cat([
         pred_xy - pred_wh / 2,  # x1, y1
@@ -53,8 +53,8 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
 
             selected_boxes = boxes[mask]
             selected_scores = cls_scores[mask]
-            # 解码过程中过滤异常框
-            # 过滤异常框（w或h太小）
+            # Filter invalid boxes after decoding.
+            # Require both width and height to exceed one pixel.
             box_wh = selected_boxes[:, 2:] - selected_boxes[:, :2]
             valid = (box_wh[:, 0] > 1) & (box_wh[:, 1] > 1)
             selected_boxes = selected_boxes[valid]
@@ -62,7 +62,7 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
 
             # NMS
             keep = torch.ops.torchvision.nms(selected_boxes, selected_scores, nms_thresh)
-            # ✅ 限制 top_k
+            # ✅ Limit retained boxes per class to top_k.
             if top_k is not None:
                 keep = keep[:top_k]
 
@@ -73,8 +73,8 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
                     "label": cls
                 })
 
-        # 按得分排序（可选）
+        # Sort results by descending score.
         result_b = sorted(result_b, key=lambda x: x['score'], reverse=True)
         all_results.append(result_b)
 
-    return all_results  # List[B] → 每个样本的 List[dict]
+    return all_results  # List[B], containing a List[dict] per sample.

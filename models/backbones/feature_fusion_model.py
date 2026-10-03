@@ -5,10 +5,10 @@ import torch.nn.functional as F
 
 class PillarFeatureNet(nn.Module):
     """
-    增强版 Pillar Feature Net：
-    - 输入: 点云 (N, 3)，包含 (x, y, z)
-    - 加入位置编码: Δx, Δy, Δz, 距离 √(x²+y²)
-    - 输出: BEV 特征图 [B, C, H_bev, W_bev]，使用 max pooling 聚合
+    Pillar feature encoder:
+    - Input: a batch of LiDAR point clouds, each shaped (N, 3).
+    - Features: reordered camera coordinates, two pillar offsets, camera height, and planar distance.
+    - Output: BEV features [B, C, H_bev, W_bev], aggregated by max pooling.
     """
     def __init__(self, x_range=(-40, 40), y_range=(0, 70), voxel_size=0.4, out_channels=32, drop_p=0.3):
         super().__init__()
@@ -20,14 +20,14 @@ class PillarFeatureNet(nn.Module):
         self.bev_W = int((x_range[1] - x_range[0]) / voxel_size)
         self.bev_H = int((y_range[1] - y_range[0]) / voxel_size)
 
-        # 增强版 MLP，输入 7 维特征 (x, y, z, Δx, Δy, Δz, 距离)
+        # MLP with seven input features: three coordinates, two offsets, height, and planar distance.
         self.fc = nn.Sequential(
             nn.Linear(7, 64),
             nn.ReLU(),
-            nn.Dropout(p=self.drop_p),  # 加在这
+            nn.Dropout(p=self.drop_p),  # Regularize point features.
             nn.Linear(64, 128),
             nn.ReLU(),
-            nn.Dropout(p=self.drop_p),  # 加在这
+            nn.Dropout(p=self.drop_p),  # Regularize point features.
             nn.Linear(128, out_channels)
         )
 
@@ -61,17 +61,17 @@ class PillarFeatureNet(nn.Module):
                 idx = torch.randperm(points.shape[0])[:max_points]
                 points = points[idx]
 
-            # 增加位置编码
+            # Add pillar offsets, camera height, and planar distance.
             pillar_center_x = ((points[:, 0] // self.voxel_size) * self.voxel_size + self.x_range[0] + self.voxel_size / 2)
             pillar_center_y = ((points[:, 1] // self.voxel_size) * self.voxel_size + self.y_range[0] + self.voxel_size / 2)
             delta = torch.stack([points[:, 0] - pillar_center_x, points[:, 1] - pillar_center_y, points[:, 2]], dim=1)
             distance = torch.norm(points[:, :2], dim=1, keepdim=True)
-            feat_input = torch.cat([points, delta, distance], dim=1)  # (x, y, z, Δx, Δy, Δz, √(x²+y²))
+            feat_input = torch.cat([points, delta, distance], dim=1)  # (cam_x, cam_z, cam_y, offset_x, offset_z, cam_y, planar_distance)
 
-            # 提取点特征
+            # Extract point features.
             feat = self.fc(feat_input).float()
 
-            # BEV 索引
+            # Compute BEV cell indices.
             x_idx = ((points[:, 0] - self.x_range[0]) / self.voxel_size).long()
             y_idx = ((points[:, 1] - self.y_range[0]) / self.voxel_size).long()
             x_idx = x_idx.clamp(0, self.bev_W - 1)

@@ -4,10 +4,10 @@ import torch
 from utils.project_lidar import project_lidar_to_image
 def fuse_data(image, lidar, calib):
     """
-    image: [3, H, W] 的 Tensor
-    lidar: (N, 3) 的 numpy 数组
-    calib: 包含 P2, Tr_velo_to_cam, R0_rect 的 dict
-    返回: [4, H, W] 的 Tensor，拼接了深度图
+    image: tensor shaped [3, H, W].
+    lidar: NumPy array shaped (N, 3).
+    calib: dictionary containing P2, Tr_velo_to_cam, and R0_rect.
+    Return: tensor shaped [4, H, W] with the depth map appended.
     """
     _, H, W = image.shape
     if "P2" not in calib or "Tr_velo_to_cam" not in calib or "R0_rect" not in calib:
@@ -19,6 +19,6 @@ def fuse_data(image, lidar, calib):
         depth_map = np.zeros((H, W), dtype=np.float32)
 
     depth_tensor = torch.from_numpy(depth_map).to(image.device).unsqueeze(0)  # [1, H, W]
-    depth_tensor = torch.clamp(depth_tensor / 70.0, 0.0, 1.0)  # 稳定归一化
+    depth_tensor = torch.clamp(depth_tensor / 70.0, 0.0, 1.0)  # Normalize depth by 70 meters and clamp to [0, 1].
     fused = torch.cat([image, depth_tensor], dim=0)  # [4, H, W]
     return fused

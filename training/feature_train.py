@@ -1,4 +1,4 @@
-# feature_train.py —— 特征融合训练脚本（统一验证逻辑）
+# feature_train.py -- Feature-fusion training with unified validation.
 
 import os, torch, yaml
 from torch.utils.data import DataLoader
@@ -35,7 +35,7 @@ def compute_iou_matrix(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tens
     union = area1[:, None] + area2 - inter
     return inter / (union + 1e-6)
 
-# ---------- 组件构建 ----------
+# ---------- Build training components ----------
 def build_feature_components(cfg: dict, device):
     from dataloader.dataload_kitti import KITTIDataset
     from models.backbones.feature_fusion_model import FeatureFusionResNetFPN
@@ -43,8 +43,8 @@ def build_feature_components(cfg: dict, device):
     from loss.yolo_loss_1 import YOLOLoss
     from utils.cluster_anchors import cluster_anchors_from_dataset
 
-    ds_train = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "train")
-    ds_val   = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "val")
+    ds_train = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "train")
+    ds_val   = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "val")
 
     dl_train = DataLoaderX(ds_train, batch_size=cfg["batch_size"], shuffle=True,
                            num_workers=cfg.get("num_workers", 0), prefetch_factor=cfg.get("prefetch_factor", 2),
@@ -61,7 +61,7 @@ def build_feature_components(cfg: dict, device):
     anchors = [P3, P4, P5]
     print("✅ anchors:", anchors)
 
-    # 适配新骨干网络（Pillar + P5 融合）
+    # Build the pillar backbone with fusion at P3, P4, and P5.
     backbone = FeatureFusionResNetFPN(fpn_out_channels=256, voxel_size=0.4, drop_p=0.3).to(device)
     head     = YOLODetectionHead([256, 256, 256], 3, 1).to(device)
 
@@ -71,8 +71,8 @@ def build_feature_components(cfg: dict, device):
         def forward_batch(self, batch, dev):
             imgs   = batch["image"].to(dev)
             lidars = batch["lidar"]
-            calibs = batch["calib"]  # ★ 加这一行
-            feats = self.bb(imgs, lidars, calibs)  # ★ 传入 calibs
+            calibs = batch["calib"]  # ★ Read per-sample calibration.
+            feats = self.bb(imgs, lidars, calibs)  # ★ Pass calibration to the backbone.
             preds  = self.hd([feats["P3"], feats["P4"], feats["P5"]])
             targets = []
             for bxs, lbs in zip(batch["bboxes"], batch["labels"]):
@@ -97,4 +97,4 @@ def build_feature_components(cfg: dict, device):
 
 
 if __name__ == "__main__":
-    Trainer("D:/Desktop/mod/configs/feature_train_config.yaml", build_feature_components).fit(unified_validate)
+    Trainer("./configs/feature_train_config.yaml", build_feature_components).fit(unified_validate)

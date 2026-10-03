@@ -1,4 +1,4 @@
-# result_train.py —— 结果融合训练脚本（统一验证逻辑）
+# result_train.py -- Result-fusion training with unified validation.
 
 import os, torch, yaml
 
@@ -41,8 +41,8 @@ def build_result_components(cfg: dict, device):
     from loss.yolo_loss_1 import YOLOLoss
     from utils.cluster_anchors import cluster_anchors_from_dataset
 
-    ds_train = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "train")
-    ds_val   = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "val")
+    ds_train = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "train")
+    ds_val   = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "val")
 
     dl_train = DataLoaderX(ds_train, batch_size=cfg["batch_size"], shuffle=True,
                            num_workers=cfg.get("num_workers", 0), prefetch_factor=cfg.get("prefetch_factor", 2),
@@ -74,7 +74,7 @@ def build_result_components(cfg: dict, device):
             img   = batch["image"].to(dev)
             lidar = batch["lidar"]
             calib = batch["calib"]
-            # 调用 image_forward / lidar_forward
+            # Run image_forward and lidar_forward for the two branches.
             feats_rgb = self.bb.image_forward(img)
             feats_lidar = self.bb.lidar_forward(lidar, calib)
 
@@ -106,15 +106,15 @@ def build_result_components(cfg: dict, device):
             loss_rgb, det_rgb = self.base(p_rgb, targets)
             loss_lid, det_lid = self.base(p_lidar, targets)
 
-            # ① 取两路损失之和（或平均）
+            # ① Sum the two branch losses.
             total_loss = loss_rgb + loss_lid
 
-            # ② 把三个分项做同样的求和/平均，直接放顶层
+            # ② Sum corresponding loss components into top-level fields.
             details = {
                 "ciou_loss": det_rgb["ciou_loss"] + det_lid["ciou_loss"],
                 "obj_loss": det_rgb["obj_loss"] + det_lid["obj_loss"],
                 "cls_loss": det_rgb["cls_loss"] + det_lid["cls_loss"],
-                # ③ 如需保留分路信息，可继续嵌套，但别影响顶层字段
+                # ③ Retain branch details in nested fields alongside the top-level totals.
                 "rgb": det_rgb,
                 "lidar": det_lid
             }
@@ -127,4 +127,4 @@ def build_result_components(cfg: dict, device):
     return model, criterion, optimizer, dl_train, dl_val, misc
 
 if __name__ == "__main__":
-    Trainer("D:/Desktop/mod/configs/result_train_config.yaml", build_result_components).fit(unified_validate)
+    Trainer("./configs/result_train_config.yaml", build_result_components).fit(unified_validate)

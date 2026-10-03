@@ -8,7 +8,7 @@ backbone    : resnet50
 log_with_wandb: true
 num_workers : 4
 prefetch_factor: 2
-save_path   : D:/Desktop/mod/results/rgb/rgb_saved_model.pth
+save_path   : ./results/rgb/rgb_saved_model.pth
 resume      : true
 anchors:
   P3:

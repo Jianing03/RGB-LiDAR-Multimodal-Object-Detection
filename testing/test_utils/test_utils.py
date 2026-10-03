@@ -1,4 +1,4 @@
-# 保存路径：test_utils.py
+# File: test_utils.py
 import os
 import torch
 import numpy as np
@@ -14,7 +14,7 @@ def get_difficulty(bbox, trunc, occ):
         return "invalid"
 
 def get_image_difficulty(label_lines):
-    # 计算图像中所有目标的最大难度
+    # Find the hardest valid Car difficulty in the image.
     difficulty_order = {"easy": 0, "moderate": 1, "hard": 2}
     max_diff = None
     for line in label_lines:
@@ -28,7 +28,7 @@ def get_image_difficulty(label_lines):
             continue
         if max_diff is None or difficulty_order[diff] > difficulty_order[max_diff]:
             max_diff = diff
-    return max_diff  # 返回 easy / moderate / hard / None
+    return max_diff  # Return easy, moderate, hard, or None.
 
 def split_by_difficulty(dataset, save_path=None):
 

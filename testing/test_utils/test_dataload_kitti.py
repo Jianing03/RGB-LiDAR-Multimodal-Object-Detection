@@ -5,10 +5,10 @@ from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms as T
 
-CLASS_DICT = {"Car": 0}  # 只保留 Car
+CLASS_DICT = {"Car": 0}  # Keep only the Car class.
 """
-# 只提取了 P2 投影矩阵（相机2的投影矩阵，常用于图像投影）
-# 使用简单直接，适合只进行3D 点 → 图像投影的场景（比如做深度图生成）
+# This legacy helper reads only P2, the camera 2 projection matrix.
+# Suitable for projecting points already expressed in rectified camera coordinates.
 def read_kitti_calib(calib_path):
     with open(calib_path, 'r') as f:
         lines = f.readlines()
@@ -18,7 +18,7 @@ def read_kitti_calib(calib_path):
     return {"P2": P2}
 """
 def read_kitti_calib(calib_path):
-    """ 读取 KITTI 标定文件，返回 P2, Tr_velo_to_cam, R0_rect """
+    """ Read KITTI calibration and return P2, Tr_velo_to_cam, and R0_rect. """
     with open(calib_path, 'r') as f:
         lines = f.readlines()
 
@@ -50,7 +50,7 @@ class KITTIDataset(Dataset):
         self.label_dir = os.path.join(root_dir, "label_2")
         self.calib_dir = os.path.join(root_dir, "calib")
 
-        # 统一调整图像尺寸为256x256
+        # Set the default image size to 256x256.
         self.input_size = (256, 256)
         # self.input_size = (192, 192)
 
@@ -59,7 +59,7 @@ class KITTIDataset(Dataset):
             T.ToTensor()
         ])
 
-        print(f"[KITTI Dataset] 加载 split={split_key}，样本数={len(self.ids)}")
+        print(f"[KITTI Dataset] Loaded split={split_key}, samples={len(self.ids)}")
 
     def __len__(self):
         return len(self.ids)
@@ -72,31 +72,31 @@ class KITTIDataset(Dataset):
         label_path = os.path.join(self.label_dir, f"{sample_id}.txt")
         calib_path = os.path.join(self.calib_dir, f"{sample_id}.txt")
 
-        # 先打开图像获取原始尺寸，再进行转换
+        # Read the original image dimensions before applying transforms.
         img_pil = Image.open(img_path).convert("RGB")
-        orig_w, orig_h = img_pil.size  # 原始图像尺寸
-        image = self.transform(img_pil)  # 转换为256x256尺寸
+        orig_w, orig_h = img_pil.size  # Original image dimensions.
+        image = self.transform(img_pil)  # Apply the image transform; the default resizes to 256x256.
 
-        # 计算缩放因子：原始尺寸 → 256x256
+        # Compute scale factors from the original dimensions to the input size.
         scale_w = self.input_size[0] / orig_w
         scale_h = self.input_size[1] / orig_h
 
-        # ★ 先加载标定文件
+        # ★ Load calibration before transforming points.
         calib = read_kitti_calib(calib_path)
 
         # lidar = np.fromfile(lidar_path, dtype=np.float32).reshape(-1, 4)[:, :3]
         lidar = np.fromfile(lidar_path, dtype=np.float32).reshape(-1, 4)[:, :3]
 
-        # ★ LiDAR → 相机坐标系
+        # ★ Transform LiDAR points into rectified camera coordinates.
         lidar_homo = np.hstack((lidar, np.ones((lidar.shape[0], 1))))  # [N,4]
         Tr = calib['Tr_velo_to_cam']  # (3,4)
         R0 = calib['R0_rect']  # (3,3)
         cam_xyz = (R0 @ (Tr @ lidar_homo.T)).T  # [N,3]
 
-        # ★ 在相机坐标系裁剪
-        mask_x = (cam_xyz[:, 0] >= -40) & (cam_xyz[:, 0] <= 40)  # 左右
-        mask_z = (cam_xyz[:, 2] >= 0) & (cam_xyz[:, 2] <= 70)  # 前后
-        lidar = lidar[mask_x & mask_z]  # ★ 裁剪原始 LiDAR 点云（不是 cam_xyz）
+        # ★ Compute cropping masks in camera coordinates.
+        mask_x = (cam_xyz[:, 0] >= -40) & (cam_xyz[:, 0] <= 40)  # Lateral range.
+        mask_z = (cam_xyz[:, 2] >= 0) & (cam_xyz[:, 2] <= 70)  # Forward depth range.
+        lidar = lidar[mask_x & mask_z]  # ★ Apply the camera-space mask to the original LiDAR points.
 
         bboxes, labels = [], []
         if os.path.exists(label_path):
@@ -106,12 +106,12 @@ class KITTIDataset(Dataset):
                     cls_name = fields[0]
                     if cls_name != "Car":
                         continue
-                    # KITTI 标注坐标基于原始图像尺寸
+                    # KITTI box coordinates refer to the original image dimensions.
                     x1, y1, x2, y2 = map(float, fields[4:8])
                     w, h = x2 - x1, y2 - y1
                     if w < 1e-2 or h < 1e-2:
-                        continue  # 排除无效框
-                    # 缩放边界框坐标到 256x256
+                        continue  # Skip invalid boxes.
+                    # Scale box coordinates to the input dimensions.
                     x1_scaled = x1 * scale_w
                     y1_scaled = y1 * scale_h
                     x2_scaled = x2 * scale_w
@@ -120,7 +120,7 @@ class KITTIDataset(Dataset):
                     labels.append(CLASS_DICT[cls_name])
 
         if len(bboxes) == 0:
-            return None  # 直接跳过无效样本
+            return None  # Skip samples with no valid Car boxes.
 
         return {
             "id": sample_id,
@@ -134,9 +134,9 @@ class KITTIDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = KITTIDataset(
-        root_dir="D:/KITTI",
-        split_json="D:/KITTI/kitti_split_6_2_2.json",
+        root_dir="./data/KITTI",
+        split_json="./data/KITTI/kitti_split_6_2_2.json",
         split_key="train"
     )
-    print("样本数:", len(dataset))
+    print("Sample count:", len(dataset))
     print(dataset[0])

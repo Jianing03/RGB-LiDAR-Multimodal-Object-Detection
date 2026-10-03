@@ -15,7 +15,7 @@ def compute_iou_matrix(boxes1, boxes2):
     union = area1[:, None] + area2 - inter
     return inter / (union + 1e-6)
 
-# ---------- 单图像评估 ----------
+# ---------- Single-image evaluation ----------
 def evaluate_image(pred_boxes, gt_boxes, pred_scores):
     if len(pred_boxes) == 0:
         return 0, 0, len(gt_boxes), [], []
@@ -44,14 +44,14 @@ def evaluate_image(pred_boxes, gt_boxes, pred_scores):
     fn = (~matched).sum().item()
     return tp, fp, fn, y_true, y_score
 
-# ---------- 评估 Precision, Recall, F1 ----------
+# ---------- Compute precision, recall, and F1 ----------
 def compute_precision_recall_f1(tp, fp, fn):
     precision = tp / (tp + fp + 1e-6)
     recall    = tp / (tp + fn + 1e-6)
     f1        = 2 * precision * recall / (precision + recall + 1e-6)
     return precision, recall, f1
 
-# ---------- 绘图 ----------
+# ---------- Plotting ----------
 def plot_pr_curve(gt_labels, pred_scores, save_path):
     precision, recall, _ = precision_recall_curve(gt_labels, pred_scores)
     ap = average_precision_score(gt_labels, pred_scores)
@@ -61,9 +61,9 @@ def plot_pr_curve(gt_labels, pred_scores, save_path):
     plt.xlabel('Recall'); plt.ylabel('Precision'); plt.title('PR Curve')
     plt.legend(); plt.grid(True); plt.tight_layout()
     plt.savefig(save_path); plt.close()
-    print(f"✅ 保存 PR 曲线至: {save_path}")
+    print(f"✅ PR curve saved to: {save_path}")
 
-# ---------- 评估整个数据集 ----------
+# ---------- Dataset evaluation ----------
 def evaluate_dataset(all_preds, all_gts, save_pr_curve_path=None):
     total_tp = total_fp = total_fn = 0
     y_true, y_scores = [], []
@@ -107,7 +107,7 @@ def evaluate_dataset(all_preds, all_gts, save_pr_curve_path=None):
         "fn": total_fn
     }
 
-# ---------- Trainer 调用主函数 ----------
+# ---------- Trainer evaluation entry point ----------
 def eval_metrics_and_pr(model, ema, dl_val, device, save_path):
     from utils.yolo_postprocess import decode_yolo_output
 

@@ -5,15 +5,10 @@
 import torch
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # print_hi('PyCharm')
-    ckpt = torch.load("D:/Desktop/final_results/early_saved_model_best_f1.pth", map_location="cpu")
+    ckpt = torch.load("./results/early_saved_model_best_f1.pth", map_location="cpu")
     for k in ckpt["model"].keys():
         if "detect_layers" in k:
             print(k)

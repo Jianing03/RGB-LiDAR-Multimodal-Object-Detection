@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# --------------------------- CIoU 损失 --------------------------- #
+# --------------------------- CIoU loss --------------------------- #
 def bbox_ciou(pred_boxes, target_boxes, eps: float = 1e-6):
     px, py, pw, ph = pred_boxes.unbind(-1)
     tx, ty, tw, th = target_boxes.unbind(-1)
@@ -42,7 +42,7 @@ class FocalLoss(nn.Module):
         loss = alpha_factor * modulating_factor * ce_loss
         return loss.mean() if self.reduction == "mean" else loss.sum()
 
-# --------------------------- YOLO Loss 主类 --------------------------- #
+# --------------------------- Main YOLO loss class --------------------------- #
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -120,7 +120,7 @@ class YOLOLoss(nn.Module):
                         elif iou_wh > self.iou_ignore_thr:
                             ignore_mask[b, a, gy, gx] = True
 
-            # fallback 确保每个 GT 至少有正样本
+            # Fallback: assign a positive anchor to each valid ground-truth box.
             for bb in range(B):
                 if targets[bb].numel() == 0:
                     continue
@@ -132,7 +132,7 @@ class YOLOLoss(nn.Module):
                     if gx >= W or gy >= H:
                         continue
                     gt_wh = t_wh[i]
-                    if gt_wh.min() < 1e-2:  # 太小的 gt 框直接跳过
+                    if gt_wh.min() < 1e-2:  # Skip ground-truth boxes with negligible width or height.
                         continue
 
                     ratio_all = t_wh[i].unsqueeze(0) / (anchors_scaled[0, :, 0, 0] + 1e-6)

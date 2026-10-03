@@ -4,15 +4,15 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
     assert output.dim() == 5, f"Expect 5-D tensor, got {output.shape}"
 
     """
-    解码 YOLO 输出，支持 batch 和多 anchor。
+    Decode batched YOLO predictions with multiple anchors.
 
     :param output: Tensor [B, A, H, W, 5+C]
-    :param anchors: List[Tuple(w, h)] 或 Tensor [A, 2]
-    :param stride: int（当前输出层的 stride，如 P3=8, P4=16, P5=32）
-    :param conf_thresh: 置信度阈值
-    :param nms_thresh: NMS 阈值
-    :param top_k: 每张图像保留最多多少个框（NMS 后再排序）
-    :return: List[B]，每个样本是 List[dict{box, score, label}]
+    :param anchors: List[Tuple(w, h)] or Tensor [A, 2]
+    :param stride: int: output stride, e.g. P3=8, P4=16, P5=32
+    :param conf_thresh: Confidence threshold
+    :param nms_thresh: NMS IoU threshold
+    :param top_k: Maximum boxes per image after NMS and score sorting
+    :return: List[B], each item a List[dict{box, score, label}]
     """
     B, A, H, W, pred_dim = output.shape
     num_classes = pred_dim - 5
@@ -60,7 +60,7 @@ def decode_yolo_output(output, anchors, stride, conf_thresh=0.3, nms_thresh=0.5,
                     "label": cls
                 })
 
-        # 排序 + top_k 截断
+        # Sort by score and keep at most top_k boxes.
         result_b = sorted(result_b, key=lambda x: x["score"], reverse=True)
         all_results.append(result_b[:top_k])
 

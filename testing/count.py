@@ -1,17 +1,17 @@
 import os
 import json
 
-# 配置路径
-KITTI_ROOT = "D:/KITTI"
+# Configure paths.
+KITTI_ROOT = "./data/KITTI"
 LABEL_DIR = os.path.join(KITTI_ROOT, "label_2")
 SPLIT_PATH = os.path.join(KITTI_ROOT, "kitti_split_6_2_2.json")
 
-# 加载测试集索引
+# Load test split IDs.
 with open(SPLIT_PATH, "r") as f:
     split_data = json.load(f)
 test_ids = split_data["test"]
 
-# 难度判定规则（参考 KITTI 官方标准）
+# Classify difficulty using KITTI height, truncation, and occlusion criteria.
 def get_difficulty(obj):
     trunc = float(obj[1])
     occl = int(obj[2])
@@ -26,10 +26,10 @@ def get_difficulty(obj):
     else:
         return "Unknown"
 
-# 初始化统计计数器
+# Initialize difficulty counters.
 difficulty_count = {"Easy": 0, "Moderate": 0, "Hard": 0, "Unknown": 0}
 
-# 遍历测试集每张图片的 label 文件
+# Read each test image's label file.
 for img_id in test_ids:
     label_path = os.path.join(LABEL_DIR, f"{img_id}.txt")
     if not os.path.exists(label_path):
@@ -42,12 +42,12 @@ for img_id in test_ids:
     for line in lines:
         fields = line.strip().split()
         obj_type = fields[0]
-        if obj_type != "Car":  # 只关注 Car 类别
+        if obj_type != "Car":  # Evaluate only the Car class.
             continue
         diff = get_difficulty(fields)
         difficulties.add(diff)
 
-    # 判断整张图的最“困难”难度等级（以最大难度为准）
+    # Assign the hardest recognized Car difficulty; use Unknown if none qualifies.
     if "Hard" in difficulties:
         difficulty_count["Hard"] += 1
     elif "Moderate" in difficulties:
@@ -57,7 +57,7 @@ for img_id in test_ids:
     else:
         difficulty_count["Unknown"] += 1
 
-# 输出结果
-print("📊 测试集中不同难度的图像数量：")
+# Print results.
+print("📊 Test image counts by difficulty:")
 for k, v in difficulty_count.items():
     print(f"  {k:<8}: {v}")

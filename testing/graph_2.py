@@ -2,23 +2,23 @@ import cv2
 import numpy as np
 import os
 
-# === 文件路径配置 ===
-# input_dir = "D:/Desktop/easy"
-# output_dir = "D:/Desktop/easy_processed"
-# input_dir = "D:/Desktop/moderate"
-# output_dir = "D:/Desktop/modarate_processed"
-input_dir = "D:/Desktop/hard"
-output_dir = "D:/Desktop/hard_processed"
+# === File path configuration ===
+# input_dir = "./results/easy"
+# output_dir = "./results/easy_processed"
+# input_dir = "./results/moderate"
+# output_dir = "./results/modarate_processed"
+input_dir = "./results/hard"
+output_dir = "./results/hard_processed"
 os.makedirs(output_dir, exist_ok=True)
 
-# 模型颜色和标题对应
+# Map each model to its color and figure title.
 model_infos = {
-    "early": {"color": (255, 128, 0), "title": "图 4.9 Hard 样本早期融合模型"},
-    "feature": {"color": (0, 0, 255), "title": "图 4.10 Hard 样本中期融合模型"},
-    "result": {"color": (0, 255, 0), "title": "图 4.11 Hard 样本晚期融合模型"},
+    "early": {"color": (255, 128, 0), "title": "Figure 4.9: Early fusion on a hard sample"},
+    "feature": {"color": (0, 0, 255), "title": "Figure 4.10: Feature fusion on a hard sample"},
+    "result": {"color": (0, 255, 0), "title": "Figure 4.11: Late fusion on a hard sample"},
 }
 
-# ✅ 统一放大区域（x, y, w, h）
+# ✅ Shared zoom region (x, y, w, h).
 PATCH_REGION = (495, 140, 290, 130)
 
 def extract_boxes_by_color(img, color_bgr, tol=40):
@@ -32,7 +32,7 @@ def extract_boxes_by_color(img, color_bgr, tol=40):
 def process_image(img_path, color, title_text, output_path):
     img = cv2.imread(img_path)
     if img is None:
-        print(f"图像读取失败: {img_path}")
+        print(f"Failed to read image: {img_path}")
         return
 
     h, w = img.shape[:2]
@@ -59,7 +59,7 @@ def process_image(img_path, color, title_text, output_path):
     offset_x = (canvas_w - resized.shape[1]) // 2
     combined[h:h + resized.shape[0], offset_x:offset_x + resized.shape[1]] = resized
 
-    # 红线连接逻辑
+    # Connect the source region to the enlarged crop with red lines.
     red = (0, 0, 255)
     pt_left = (x1, (y1 + y2) // 2)
     pt_right = (x2, (y1 + y2) // 2)
@@ -70,13 +70,13 @@ def process_image(img_path, color, title_text, output_path):
     cv2.line(combined, pt_right, pt_zoom_right, red, 2)
 
     cv2.imwrite(output_path, combined)
-    print(f"✅ 已保存: {output_path}")
+    print(f"✅ Saved: {output_path}")
 
-# === 主调入口 ===
+# === Main entry point ===
 if __name__ == "__main__":
     # base_id = "000179"
     # base_id = "002356"
-    base_id = "000401"  # 改为当前样本编号
+    base_id = "000401"  # Set the sample ID to visualize.
 
     for key, info in model_infos.items():
         img_path = os.path.join(input_dir, f"{base_id}_{key}.jpg")

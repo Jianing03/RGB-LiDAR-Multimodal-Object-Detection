@@ -4,18 +4,18 @@ import numpy as np
 def draw_boxes2d_on_bev(bev_img, bboxes, color=(255, 0, 0), thickness=2,
                         x_range=(-40, 40), y_range=(0, 70), voxel_size=0.4):
     """
-    在 BEV 图像上绘制 2D 检测框。
+    Draw 2D boxes on a BEV image.
 
-    参数:
-        bev_img (np.ndarray): 输入的 BEV 图像，shape=[H, W, 3]，uint8
-        bboxes (Tensor or np.ndarray): [N, 4]，每行是 (x1, y1, x2, y2)，图像平面坐标
-        color (Tuple[int]): 绘制颜色，默认红色
-        thickness (int): 线条宽度
-        x_range, y_range (Tuple[float]): BEV 空间范围
-        voxel_size (float): 体素大小，影响 BEV 分辨率
+    Args:
+        bev_img (np.ndarray): Input BEV image, shape [H, W, 3], dtype uint8.
+        bboxes (Tensor or np.ndarray): [N, 4], each row (x1, y1, x2, y2), interpreted in the BEV spatial frame.
+        color (Tuple[int]): OpenCV BGR color; defaults to blue.
+        thickness (int): Line thickness.
+        x_range, y_range (Tuple[float]): BEV spatial ranges.
+        voxel_size (float): Voxel size, which determines BEV resolution.
 
-    返回:
-        bev_img (np.ndarray): 绘制后的图像
+    Returns:
+        bev_img (np.ndarray): Annotated image.
     """
     H_bev = int((y_range[1] - y_range[0]) / voxel_size)
     W_bev = int((x_range[1] - x_range[0]) / voxel_size)
@@ -23,13 +23,13 @@ def draw_boxes2d_on_bev(bev_img, bboxes, color=(255, 0, 0), thickness=2,
     for box in bboxes:
         x1, y1, x2, y2 = box
 
-        # 计算中心点与尺寸
+        # Compute box centers and dimensions.
         cx = (x1 + x2) / 2
         cy = (y1 + y2) / 2
         w = x2 - x1
         h = y2 - y1
 
-        # 映射到 BEV 图像上的坐标（注意顺序：x 对应列，y 对应行）
+        # Map to BEV image coordinates: x indexes columns, y indexes rows.
         x_bev = int((cx - x_range[0]) / voxel_size)
         y_bev = int((cy - y_range[0]) / voxel_size)
         w_bev = int(w / voxel_size)

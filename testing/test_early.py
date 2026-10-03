@@ -84,36 +84,36 @@ def evaluate_subset(model, dataloader, device):
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    cfg = load_yaml("D:/Desktop/mod/configs/early_train_config.yaml")
+    cfg = load_yaml("./configs/early_train_config.yaml")
     model, _, _, _, _, _ = build_early_components(cfg, device)
-    ckpt = torch.load("D:/Desktop/final_results/early_saved_model_best_f1.pth", map_location=device)
+    ckpt = torch.load("./results/early_saved_model_best_f1.pth", map_location=device)
     model.load_state_dict(ckpt["model"])
     model.anchors = ckpt["anchors"]
 
-    dataset = KITTIDataset("D:/KITTI", "D:/KITTI/kitti_split_6_2_2.json", "test")
-    npz_path = "D:/Desktop/mod/test_indices.npz"
+    dataset = KITTIDataset("./data/KITTI", "./data/KITTI/kitti_split_6_2_2.json", "test")
+    npz_path = "./test_indices.npz"
     if os.path.exists(npz_path):
         splits = np.load(npz_path)
         easy_ids, moderate_ids, hard_ids = splits["easy"], splits["moderate"], splits["hard"]
     else:
         easy_ids, moderate_ids, hard_ids = split_by_difficulty(dataset, save_path=npz_path)
-        # ✅ 打印各类样本数量
-    print(f"[Easy] 样本数量: {len(easy_ids)}")
-    print(f"[Moderate] 样本数量: {len(moderate_ids)}")
-    print(f"[Hard] 样本数量: {len(hard_ids)}")
+        # ✅ Print sample counts by difficulty.
+    print(f"[Easy] Sample count: {len(easy_ids)}")
+    print(f"[Moderate] Sample count: {len(moderate_ids)}")
+    print(f"[Hard] Sample count: {len(hard_ids)}")
 
     dl_easy = DataLoader(Subset(dataset, easy_ids), batch_size=8, collate_fn=kitti_collate)
     dl_moderate = DataLoader(Subset(dataset, moderate_ids), batch_size=8, collate_fn=kitti_collate)
     dl_hard = DataLoader(Subset(dataset, hard_ids), batch_size=8, collate_fn=kitti_collate)
 
-    print("\U0001f697 [Easy] 测试中...")
+    print("\U0001f697 [Easy] Evaluating...")
     print(evaluate_subset(model, dl_easy, device))
-    print("\U0001f697 [Moderate] 测试中...")
+    print("\U0001f697 [Moderate] Evaluating...")
     print(evaluate_subset(model, dl_moderate, device))
-    print("\U0001f697 [Hard] 测试中...")
+    print("\U0001f697 [Hard] Evaluating...")
     print(evaluate_subset(model, dl_hard, device))
 
-    print("🚀 [Overall 全体样本] 测试中...")
+    print("🚀 [Overall, all samples] Evaluating...")
     full_loader = DataLoader(dataset, batch_size=8, collate_fn=kitti_collate)
     overall_metrics = evaluate_subset(model, full_loader, device)
     print(overall_metrics)

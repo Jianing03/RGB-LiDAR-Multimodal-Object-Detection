@@ -11,12 +11,12 @@ from testing.test_utils.kitti_vis import draw_boxes_with_scores
 # from utils.yolo_postprocess import decode_yolo_output
 from testing.test_utils.test_yolo_postprocess import decode_yolo_output
 
-# 配置路径
-CKPT_PATH = "D:/Desktop/final_results/result_saved_model_best_f1.pth"
-CFG_PATH = "D:/Desktop/mod/configs/result_train_config.yaml"
-SPLIT_PATH = "D:/Desktop/mod/test_indices.npz"
-KITTI_ROOT = "D:/KITTI"
-SAVE_ROOT = "D:/Desktop/final_results/result_test_picture"
+# Configure paths.
+CKPT_PATH = "./results/result_saved_model_best_f1.pth"
+CFG_PATH = "./configs/result_train_config.yaml"
+SPLIT_PATH = "./test_indices.npz"
+KITTI_ROOT = "./data/KITTI"
+SAVE_ROOT = "./results/result_test_picture"
 SAVE_DIRS = {
     "easy": os.path.join(SAVE_ROOT, "easy"),
     "moderate": os.path.join(SAVE_ROOT, "moderate"),
@@ -26,7 +26,7 @@ os.makedirs(SAVE_ROOT, exist_ok=True)
 for d in SAVE_DIRS.values():
     os.makedirs(d, exist_ok=True)
 
-# 加载配置和模型
+# Load the configuration and model.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg = load_yaml(CFG_PATH)
 model, _, _, _, _, _ = build_result_components(cfg, device)
@@ -34,7 +34,7 @@ ckpt = torch.load(CKPT_PATH, map_location=device)
 model.load_state_dict(ckpt["model"])
 model.eval()
 
-# 加载验证集与索引
+# Load the test split and sample indices.
 dataset = KITTIDataset(KITTI_ROOT, os.path.join(KITTI_ROOT, "kitti_split_6_2_2.json"), "test")
 split = np.load(SPLIT_PATH)
 subset_indices = {
@@ -43,7 +43,7 @@ subset_indices = {
     "hard": split["hard"][:20],
 }
 
-# 处理每张图片
+# Process each image.
 for diff_level, indices in subset_indices.items():
     for idx in tqdm(indices, desc=f"Processing {diff_level}"):
         sample = dataset[idx]
@@ -57,8 +57,8 @@ for diff_level, indices in subset_indices.items():
             out_rgb = model.h_rgb([feats_rgb["P3_img"], feats_rgb["P4_img"], feats_rgb["P5_img"]])
             out_lid = model.h_lidar([feats_lid["P3_lidar"], feats_lid["P4_lidar"], feats_lid["P5_lidar"]])
 
-        # 解码 + 合并 + NMS
-        # ✅ 统一 stride 设置
+        # Decode predictions, merge branches, and apply NMS.
+        # ✅ Use consistent strides across branches.
         strides = [8, 16, 32]
         pred_boxes = []
 
@@ -68,7 +68,7 @@ for diff_level, indices in subset_indices.items():
         for pred, anchor, stride in zip(out_lid, model.anchors, strides):
             pred_boxes += decode_yolo_output(pred, anchor, stride=stride, conf_thresh=0.3, nms_thresh=0.5)[0]
 
-        # 合并后的多层框进行 NMS
+        # Apply NMS to merged predictions across feature levels.
         from torchvision.ops import nms
 
         if len(pred_boxes) > 0:
@@ -79,7 +79,7 @@ for diff_level, indices in subset_indices.items():
         else:
             pred_boxes = []
 
-        # 获取原图尺寸
+        # Get the original image dimensions.
         H_in, W_in = sample["image"].shape[1:]
         raw_img_path = os.path.join(KITTI_ROOT, "image_2", sample["id"] + ".png")
         raw_img = cv2.imread(raw_img_path)
@@ -87,10 +87,10 @@ for diff_level, indices in subset_indices.items():
             continue
         H_raw, W_raw = raw_img.shape[:2]
 
-        # 恢复框尺寸 & 可视化
+        # Rescale boxes and visualize predictions.
         boxes = []
         scores = []
-        for box in pred_boxes:  # ✅ 注意改这里
+        for box in pred_boxes:  # ✅ Read each prediction's box and score.
             x1, y1, x2, y2 = box["box"]
             score = box["score"]
             x1 *= W_raw / W_in

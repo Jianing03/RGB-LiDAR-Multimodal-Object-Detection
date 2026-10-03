@@ -1,4 +1,4 @@
-# trainer_core.py —— 增加 Loss 细分记录
+# trainer_core.py -- Trainer with loss-component logging.
 
 import os, torch, yaml, wandb
 from torch.cuda.amp import GradScaler, autocast
@@ -15,7 +15,7 @@ class Trainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         (self.model, self.criterion, self.optimizer, self.dl_train, self.dl_val, self.misc) = build_components_fn(self.cfg, self.device)
 
-        # 更平滑的Warmup + Cosine
+        # Configure linear warmup and cosine learning-rate schedules.
         warm, total = 5, self.cfg["epochs"]
         self.sched_warm = LambdaLR(self.optimizer, lr_lambda=lambda e: min(1., (e+1)/warm))
         self.sched_cos  = CosineAnnealingLR(self.optimizer, T_max=total-warm, eta_min=1e-6)
@@ -124,10 +124,10 @@ class Trainer:
         with autocast(enabled=self.cfg["use_amp"]):
             out = self.model.forward_batch(batch, self.device)
 
-            if len(out) == 2:  # 早期 / 特征
+            if len(out) == 2:  # Early / feature fusion
                 preds, targets = out
                 loss, loss_details = self.criterion(preds, targets)
-            else:  # 结果级
+            else:  # Result-level fusion
                 p_rgb, p_lidar, targets = out
                 loss, loss_details = self.criterion(p_rgb, p_lidar, targets)
 

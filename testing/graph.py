@@ -2,23 +2,23 @@ import os
 import re
 import matplotlib.pyplot as plt
 
-# 文件路径：替换为本地的日志路径
+# Log file paths; set these to your local logs.
 log_files = {
-    "Data level Fusion": "D:/Desktop/final_results/log/data_fusion.txt",
-    "Feature level Fusion": "D:/Desktop/final_results/log/feature_fusion.txt",
-    "Decision level Fusion": "D:/Desktop/final_results/log/decision_fusion.txt"
+    "Data level Fusion": "./results/log/data_fusion.txt",
+    "Feature level Fusion": "./results/log/feature_fusion.txt",
+    "Decision level Fusion": "./results/log/decision_fusion.txt"
 }
-# 保存图片的路径
-save_dir = r"D:/Desktop/final_results/picture"
+# Plot output directory.
+save_dir = r"./results/picture"
 os.makedirs(save_dir, exist_ok=True)
 
-# 初始化结构
+# Initialize metric storage.
 metrics = {name: {"epoch": [], "P": [], "R": [], "F1": [], "AP": []} for name in log_files}
 
-# 正则表达式匹配指标
+# Match metrics with a regular expression.
 pattern = re.compile(r"\[Epoch (\d+)] P: ([\d.]+) R: ([\d.]+) F1: ([\d.]+) AP: ([\d.]+)")
 
-# 读取并解析日志文件
+# Read and parse log files.
 for name, path in log_files.items():
     with open(path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -31,7 +31,7 @@ for name, path in log_files.items():
                 metrics[name]["F1"].append(float(f1))
                 metrics[name]["AP"].append(float(ap))
 
-# 绘图函数
+# Plotting function.
 def plot_metric(metric_key, ylabel, title, filename):
     plt.figure()
     for name in log_files:
@@ -45,7 +45,7 @@ def plot_metric(metric_key, ylabel, title, filename):
     plt.savefig(save_path, dpi=300)
     print(f"✅ Saved: {save_path}")
 
-# 生成图像
+# Generate plots.
 plot_metric("P", "Precision", "Precision vs Epoch", "precision.png")
 plot_metric("R", "Recall", "Recall vs Epoch", "recall.png")
 plot_metric("F1", "F1 Score", "F1 Score vs Epoch", "f1.png")
