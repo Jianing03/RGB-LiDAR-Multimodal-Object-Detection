@@ -1,0 +1,31 @@
+num_classes: 1
+batch_size: 24
+epochs: 100
+learning_rate: 0.0005
+patience: 7
+use_amp: false
+backbone: resnet50
+detection_head: yolo
+log_with_wandb: true
+num_workers: 4
+prefetch_factor: 2
+wandb_project: feature_fusion_3
+#cache_dir: D:/KITTI/fused_cache_all
+save_path: D:/Desktop/mod/results/feature_3/feature_3_saved_model.pth
+resume: true
+anchors:
+  P3:
+    - [7.22, 30.52]
+    - [8.61, 41.93]
+    - [7.91, 54.59]
+  P4:
+    - [9.52, 70.16]
+    - [12.75, 54.51]
+    - [9.44, 90.87]
+  P5:
+    - [12.78, 80.82]
+    - [16.67, 86.19]
+    - [13.83, 111.16]
+
+
+

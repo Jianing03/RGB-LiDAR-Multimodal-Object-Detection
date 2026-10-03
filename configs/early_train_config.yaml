@@ -1,0 +1,31 @@
+num_classes: 1
+batch_size: 24
+epochs: 50
+learning_rate: 0.0005
+patience: 7
+use_amp: true
+backbone: resnet18
+detection_head: yolo
+log_with_wandb: true
+wandb_project: early_fusion
+num_workers: 4
+prefetch_factor: 2
+cache_dir: D:/KITTI/fused_cache_all
+save_path: D:/Desktop/mod/results/early/early_saved_model.pth
+resume: true
+anchors:
+  P3:
+    - [4.094666296138476, 18.672631474488522]
+    - [4.892919187909633, 28.91121322191602]
+    - [6.599893124591134, 39.84366884825747]
+  P4:
+    - [7.830140111009151, 57.92090953851746]
+    - [11.190566086543326, 47.562416160168205]
+    - [6.878690937725997, 80.63158206371193]
+  P5:
+    - [11.79459723381989, 75.89317719401045]
+    - [11.088108241341228, 104.4703553722994]
+    - [15.875818258071948, 86.32809252724125]
+# dropout_p=0.3
+
+

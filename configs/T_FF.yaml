@@ -1,0 +1,37 @@
+num_classes: 1
+batch_size: 8
+epochs: 80
+learning_rate: 0.0005
+patience: 7
+use_amp: true
+backbone: resnet18
+detection_head: yolo
+log_with_wandb: true
+num_workers: 4
+prefetch_factor: 2
+wandb_project: T_FF
+save_path: D:/Desktop/mod/results/T_FF/TFF_saved_model.pth
+kitti_root: D:/KITTI
+split_json: D:/KITTI/kitti_split_8_2.json
+resume: true
+anchors:
+  P3:
+    - [7.22, 30.52]
+    - [8.61, 41.93]
+    - [7.91, 54.59]
+  P4:
+    - [9.52, 70.16]
+    - [12.75, 54.51]
+    - [9.44, 90.87]
+  P5:
+    - [12.78, 80.82]
+    - [16.67, 86.19]
+    - [13.83, 111.16]
+# train_config.yaml 片段
+clip_grad_norm: 1.0
+label_smoothing: 0.05
+multiscale: [256, 288, 320]   # 数据加载时随机缩放到此列表之一
+modal_dropout_p: 0.3          # 自定义 DatasetAug: 随机置零 RGB 或 LiDAR
+
+
+
