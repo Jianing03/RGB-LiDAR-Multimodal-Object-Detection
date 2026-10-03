@@ -30,19 +30,19 @@ The three models share a common ResNet-18/FPN-based detection framework while pe
 
 ### Early / Data Fusion
 
-![Early Fusion Architecture](assets/early_fusion_architecture.png)
+![Early Fusion Architecture](assets/early_fusion_architecture.svg)
 
 RGB images and projected LiDAR depth are concatenated into a four-channel input before feature extraction.
 
 ### Feature Fusion
 
-![Feature Fusion Architecture](assets/feature_fusion_architecture.png)
+![Feature Fusion Architecture](assets/feature_fusion_architecture.svg)
 
 RGB and LiDAR features are extracted independently and fused at multiple feature-pyramid levels.
 
 ### Decision / Result Fusion
 
-![Decision Fusion Architecture](assets/decision_fusion_architecture.png)
+![Decision Fusion Architecture](assets/decision_fusion_architecture.svg)
 
 RGB and LiDAR branches perform detection independently, and their decoded predictions are merged using NMS.
 
@@ -91,7 +91,7 @@ python -m dataloader.split_all
 
 ## Installation
 
-No dependency manifest or validated package versions are provided. Create a virtual environment from the repository root:
+The original experiments used **Python 3.9** and **PyTorch 2.3.1 with CUDA 12.1**. `requirements.txt` pins that PyTorch version; other dependencies remain unpinned because their tested versions are not recorded. Create a virtual environment using Python 3.9 from the repository root:
 
 ```bash
 python -m venv .venv
@@ -109,9 +109,13 @@ Or on Linux/macOS:
 source .venv/bin/activate
 ```
 
-Install dependencies according to the imports: **PyTorch, torchvision, NumPy, Pillow, PyYAML, scikit-learn, Matplotlib, OpenCV (`opencv-python`), tqdm, prefetch-generator, torch-ema, and wandb**.
+Install the dependencies verified against the tracked source imports:
 
-Use compatible PyTorch/torchvision builds for your hardware, including torchvision NMS and PyTorch `scatter_reduce_` support. Model construction requests pretrained ResNet-18 weights, which must be available locally or downloadable by torchvision.
+```bash
+pip install -r requirements.txt
+```
+
+For GPU use, select a PyTorch/torchvision build compatible with your hardware and CUDA runtime. CUDA itself is not listed in the manifest. Model construction requests pretrained ResNet-18 weights, which must be available locally or downloadable by torchvision. This manifest does not establish a fully reproduced environment or compatibility across all platforms.
 
 ## Training
 
